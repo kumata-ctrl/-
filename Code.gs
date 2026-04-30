@@ -27,13 +27,12 @@ function ensureSheets() {
     cautionSheet = ss.insertSheet('CautionMaster');
     cautionSheet.appendRow(["留意点ID", "留意点項目"]);
   }
-  
   let staffSheet = ss.getSheetByName('StaffMaster');
   if (!staffSheet) {
     staffSheet = ss.insertSheet('StaffMaster');
+    // ふりがな列を追加
     staffSheet.appendRow(["メンバーID", "担当者名", "メールアドレス", "ふりがな"]);
   }
-  
   let priceSheet = ss.getSheetByName('PriceMaster');
   if (!priceSheet) {
     priceSheet = ss.insertSheet('PriceMaster');
@@ -51,6 +50,7 @@ function getMasters() {
   if (cautionSheet && cautionSheet.getLastRow() > 1) {
     const vals = cautionSheet.getDataRange().getDisplayValues();
     vals.shift();
+    // 最初の正常な状態に戻す
     cautions = vals.map(r => ({ id: r, name: r }));
   }
 
@@ -58,6 +58,7 @@ function getMasters() {
   if (staffSheet && staffSheet.getLastRow() > 1) {
     const vals = staffSheet.getDataRange().getDisplayValues();
     vals.shift();
+    // ここだけ、ふりがなを取得するように追加
     staffs = vals.map(r => ({ id: r, name: r, email: r || "", furigana: r || "" }));
   }
 
@@ -65,7 +66,7 @@ function getMasters() {
   if (priceSheet && priceSheet.getLastRow() > 1) {
     const vals = priceSheet.getDataRange().getDisplayValues();
     vals.shift();
-    // 単価は値そのものを表示・保存する
+    // 最初の正常な状態に戻す
     prices = vals.map(r => ({ id: r, name: r }));
   }
 
@@ -100,7 +101,7 @@ function analyzeFilesWithGemini(fileDataArray, slideUrl) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
   if (!apiKey) throw new Error('APIキーが設定されていません。');
 
-  let promptText = getAiPrompt(slideUrl);
+  let promptText = typeof getAiPrompt === 'function' ? getAiPrompt(slideUrl) : "";
   
   let parts = [{ text: promptText }];
   if (fileDataArray && fileDataArray.length > 0) {
