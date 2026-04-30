@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f8ff; opacity: 0; animation: fadeInPage 0.8s ease-in-out forwards; }
+    @keyframes fadeInPage { from { opacity: 0; } to { opacity: 1; } }
+    .navbar { background-color: #003366; color: white; transition: all 0.3s ease; }
+    .navbar-brand { color: white; }
+    .samurai-icon { width: 40px; height: 40px; vertical-align: middle; margin-right: 10px; }
+    .nav-tabs .nav-link { color: white; border: none; font-weight: bold; transition: all 0.3s ease; }
+    .nav-tabs .nav-link.active { color: #003366; background-color: #e6f7ff; border-radius: 20px 20px 0 0; }
+    .nav-tabs .nav-link:hover:not(.active) { color: #e6f7ff; transform: translateY(-2px); }
+    #section-regist, #section-list { display: none; }
+    .section-active { display: block !important; animation: slideInSection 0.6s ease-out; }
+    @keyframes slideInSection { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .list-group-item-action { transition: all 0.3s ease; }
+    .list-group-item-action:hover { background-color: #e6f7ff !important; transform: translateX(5px); }
+    #detailView { opacity: 0; animation: slideInUp 0.6s ease-out forwards; }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+    .form-label { font-weight: bold; color: #003366; font-size: 0.85rem;}
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    .taro-style-form { background-color: #ffffff; }
+    .auto-expand { overflow: hidden; resize: none; min-height: 40px; }
+    .manual-input { background-color: #fffaf0 !important; border: 2px solid #ffcc00 !important; }
+    
+    /* オリジナルドロップダウン用 */
+    .dropdown-item:hover { background-color: #e6f7ff; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark mb-4 shadow-sm p-3">
+  <div class="container-fluid flex-wrap flex-md-nowrap">
+    <a class="navbar-brand mb-0 h1 d-flex align-items-center" href="javascript:void(0)" onclick="location.reload();">
+      <svg class="samurai-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="11" fill="#ffffff" />
+        <path d="M 12 1 Q 14 3 13 6 Q 11 9 12 11 Q 13 13 11 15 Q 10 16 9 15 Q 8 14 9 12 Q 10 10 9 8 Q 8 6 10 4 Q 11 2 12 1 Z" fill="#003366" />
+        <path d="M 6.5 7 L 8 6" stroke="#003366" stroke-width="1.5" stroke-linecap="round" />
+        <path d="M 17.5 7 L 16 6" stroke="#003366" stroke-width="1.5" stroke-linecap="round" />
+        <ellipse cx="8" cy="10" rx="1.5" ry="1" fill="#003366" />
+        <ellipse cx="16" cy="10" rx="1.5" ry="1" fill="#003366" />
+        <path d="M 9.5 14 Q 12 16 14.5 14" stroke="#003366" stroke-width="1.5" fill="none" stroke-linecap="round" />
+        <rect x="3" y="16" width="3" height="1.5" rx="0.5" fill="#003366" />
+        <path d="M 4.5 16 V 21" stroke="#003366" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+      初月引継太郎
+    </a>
+    <ul class="nav nav-tabs flex-grow-1 flex-md-grow-0 mt-3 mt-md-0 justify-content-center justify-content-md-end" id="appTabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" id="regist-tab" onclick="showSection('regist')" type="button">新規登録</button></li>
+      <li class="nav-item"><button class="nav-link" id="list-tab" onclick="showSection('list'); loadCases();" type="button">案件一覧</button></li>
+    </ul>
+  </div>
+</nav>
+
+<div id="loader" class="loading">
+  <div class="spinner-border text-primary mb-2" role="status"></div>
+  <div class="text-primary fw-bold" id="loadingText">太郎が処理中です...</div>
+</div>
+
+<div class="container-fluid pb-5">
+  <div id="section-regist" class="section-active card p-4 shadow-sm taro-style-form">
+    <h4 class="text-primary mb-4 fw-bold">新規案件登録</h4>
+    <div class="card bg-light border-0 mb-4 p-3">
+      <h6 class="text-primary mb-3">AI解析用入力</h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">VTTファイル (音声)</label>
+          <input type="file" id="vttFile" class="form-control" accept=".vtt,.txt">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">TSR資料 (PDF)</label>
+          <input type="file" id="pdfFile" class="form-control" accept=".pdf">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">報告会資料URL (任意)</label>
+          <input type="text" id="slideUrl" class="form-control" placeholder="Googleスライド等">
+        </div>
+      </div>
+      <button class="btn btn-outline-primary mt-3 px-4 fw-bold" onclick="runAiAnalysis()">✨ AI解析実行</button>
+    </div>
+
+    <form id="caseForm" class="row g-3">
+      <div class="col-md-4"><label class="form-label">企業名 <span class="text-danger">*</span></label><input type="text" name="企業名" class="form-control" placeholder="必須入力"></div>
+      <div class="col-md-6"><label class="form-label">本社住所</label><input type="text" name="本社住所" class="form-control"></div>
+      <div class="col-md-2"><label class="form-label">都道府県</label><input type="text" name="本社都道府県" class="form-control"></div>
+      
+      <div class="col-md-2"><label class="form-label">設立</label><input type="text" name="設立" class="form-control"></div>
+      <div class="col-md-2"><label class="form-label">従業員数</label><input type="text" name="従業員数" class="form-control"></div>
+      <div class="col-md-4"><label class="form-label">売上</label><input type="text" name="売上" class="form-control" placeholder="例: 12.3億円"></div>
+      <div class="col-md-4"><label class="form-label">利益</label><input type="text" name="利益" class="form-control" placeholder="例: 1.5億円"></div>
+      <div class="col-12"><label class="form-label">事業内容</label><textarea name="事業内容" class="form-control auto-expand" rows="1" oninput="autoResize(this)"></textarea></div>
+      <hr class="mt-4">
+      <div class="col-md-3">
+        <label class="form-label text-warning" style="text-shadow: 0px 0px 1px #000;">✍️ 実施月 (手入力)</label>
+        <input type="month" name="実施月" class="form-control manual-input" id="registMonth">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label text-warning" style="text-shadow: 0px 0px 1px #000;">✍️ 単価 (手入力)</label>
+        <select name="単価" id="registPrice" class="form-select manual-input price-select" onchange="handlePriceChange(this)"></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label text-warning" style="text-shadow: 0px 0px 1px #000;">✍️ 訪問 or ZOOM (手入力)</label>
+        <select name="訪問 or ZOOM" class="form-select manual-input">
+          <option value="">未選択</option>
+          <option value="全て訪問">全て訪問</option>
+          <option value="全てZoom">全てZoom</option>
+          <option value="訪問メイン,Zoom可">訪問メイン,Zoom可</option>
+          <option value="Zoomメイン,訪問可">Zoomメイン,訪問可</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label text-warning" style="text-shadow: 0px 0px 1px #000;">✍️ 内製化の温度感 (手入力)</label>
+        <select name="内製化の温度感" class="form-select manual-input">
+          <option value="">未選択</option>
+          <option value="内製化前提">内製化前提</option>
+          <option value="内製化前提(懸念あり)">内製化前提(懸念あり)</option>
+          <option value="目指さない">目指さない</option>
+        </select>
+      </div>
+      <div class="col-12"><label class="form-label">プロジェクトの目的</label><textarea name="プロジェクトの目的" class="form-control auto-expand" oninput="autoResize(this)"></textarea></div>
+      <div class="col-12"><label class="form-label">主な課題・解決すべきテーマ</label><textarea name="主な課題・解決すべきテーマ" class="form-control auto-expand" placeholder="【見出し】&#10;具体的内容" oninput="autoResize(this)"></textarea></div>
+      <div class="col-12"><label class="form-label">初動で着手するテーマ</label><textarea name="初動で着手するテーマ" class="form-control auto-expand" placeholder="【見出し】&#10;具体的内容" oninput="autoResize(this)"></textarea></div>
+      <div class="col-md-6"><label class="form-label">ツール指定</label><input type="text" name="ツール指定" class="form-control" placeholder="AI解析後に編集可 (例: RPA, kintone等)"></div>
+      <div class="col-md-6"><label class="form-label">その他引継ぎ事項</label><textarea name="その他引継ぎ事項" class="form-control auto-expand" rows="1" oninput="autoResize(this)"></textarea></div>
+      <div class="col-12"><label class="form-label">備考</label><textarea name="備考" class="form-control auto-expand" rows="2" placeholder="自由に追記してください" oninput="autoResize(this)"></textarea></div>
+      <hr class="mt-4">
+      
+      <div class="col-md-4">
+        <label class="form-label">初月担当</label>
+        <div class="dropdown">
+          <button class="form-select text-start" type="button" data-bs-toggle="dropdown" id="btn-registFirstStaff">未設定</button>
+          <div class="dropdown-menu p-2 shadow-sm w-100">
+            <input type="text" class="form-control form-control-sm mb-2" placeholder="🔍 名前やふりがなで検索..." onkeyup="filterDropdown(this, 'list-registFirstStaff')" onclick="event.stopPropagation();">
+            <ul class="list-unstyled mb-0" id="list-registFirstStaff" style="max-height: 200px; overflow-y: auto;"></ul>
+          </div>
+          <input type="hidden" name="初月担当" id="registFirstStaff">
+        </div>
+      </div>
+      
+      <div class="col-12 mt-3"><label class="form-label">進めるうえでの留意点</label><div id="cautionContainer" class="d-flex flex-wrap gap-3 p-3 bg-light rounded border"></div></div>
+      <div class="col-12 mt-4 text-end">
+         <button type="button" class="btn btn-success px-5 fw-bold" onclick="saveData()">保存＆転送文コピー</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="section-list" style="display:none;">
+    <div class="row">
+      <div class="col-md-4 sidebar">
+        <div class="card p-3 mb-3 shadow-sm bg-light border-0">
+          <h6 class="text-primary mb-3 fw-bold" style="font-size:0.95rem;">🔍 条件で絞り込む</h6>
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-0">企業名</label>
+            <input type="text" id="searchBox" class="form-control form-control-sm" placeholder="検索..." onkeyup="filterList()">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-0">エリア (都道府県)</label>
+            <input type="text" id="searchArea" list="areaList" class="form-control form-control-sm" placeholder="選択または入力..." onkeyup="filterList()" onchange="filterList()">
+            <datalist id="areaList"></datalist>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-0">訪問 or ZOOM</label>
+            <select id="searchVisitZoom" class="form-select form-select-sm" onchange="filterList()">
+              <option value="">すべて</option>
+              <option value="全て訪問">全て訪問</option>
+              <option value="全てZoom">全てZoom</option>
+              <option value="訪問メイン,Zoom可">訪問メイン,Zoom可</option>
+              <option value="Zoomメイン,訪問可">Zoomメイン,訪問可</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small text-muted mb-0">単価</label>
+            <select id="searchPrice" class="form-select form-select-sm" onchange="filterList()"></select>
+          </div>
+        </div>
+        <div id="caseList" class="list-group shadow-sm"></div>
+      </div>
+      <div class="col-md-8">
+        <div id="detailView" class="card p-4 shadow-sm border-0 taro-style-form">
+          <p class="text-muted text-center mt-5">左のリストから案件を選択してください</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="lineModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 class="modal-title fw-bold">太郎の引継ぎ報告テキスト</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body p-4"><textarea id="lineTextOutput" class="form-control" rows="20" readonly></textarea></div>
+      <div class="modal-footer">
+        <div class="text-muted small me-auto" id="saveStatusText">⏳ 裏側でスプレッドシートに保存中...</div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+        <button type="button" class="btn btn-success fw-bold" onclick="copyLineText()">📋 コピーしてLINEへ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let masterData = { cautions: [], staffs: [], prices: [], currentUserEmail: "" };
+  let allCases = [];
+
+  window.onload = () => {
+    google.script.run.withSuccessHandler(data => {
+      masterData = data;
+      
+      // 初月担当（新規登録）のカスタムドロップダウン構築と自動設定
+      const matchedStaff = data.staffs.find(s => s.email === data.currentUserEmail);
+      buildDropdownList('registFirstStaff', matchedStaff ? matchedStaff.id : '');
+      
+      // 単価マスタ生成
+      const priceOptions = '<option value="">未選択</option>' + data.prices.map(p => `<option value="${p.id}">${p.name}</option>`).join('') + '<option value="custom">✍️ 自分で入力する...</option>';
+      document.getElementById('registPrice').innerHTML = priceOptions;
+
+      // 検索用単価フィルタ生成
+      const searchPriceSelect = document.getElementById('searchPrice');
+      if (searchPriceSelect) searchPriceSelect.innerHTML = '<option value="">すべて</option>' + data.prices.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+      // 実施月のデフォルト値設定
+      const now = new Date();
+      const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      document.getElementById('registMonth').value = currentMonth;
+
+      // 留意点チェックボックスの描画
+      const container = document.getElementById('cautionContainer');
+      if(data.cautions.length > 0) {
+        container.innerHTML = data.cautions.map(c => `<div class="form-check"><input class="form-check-input" type="checkbox" name="進めるうえでの留意点" value="${c.id}" id="c-${c.id}"><label class="form-check-label" for="c-${c.id}">${c.name}</label></div>`).join('');
+      } else {
+        container.innerHTML = '<span class="text-muted">マスタデータがありません</span>';
+      }
+    }).getMasters();
+  };
+
+  // ★ オリジナルの検索ドロップダウンを作成する便利関数
+  function buildDropdownList(id, selectedValue) {
+    const listEl = document.getElementById(`list-${id}`);
+    const btnEl = document.getElementById(`btn-${id}`);
+    const hiddenEl = document.getElementById(id);
+    
+    // 中身のリストを作成
+    let html = `<li><a class="dropdown-item py-2 border-bottom text-muted" href="javascript:void(0)" onclick="selectStaff('${id}', '', '未設定')">未設定に戻す</a></li>`;
+    masterData.staffs.forEach(s => {
+      html += `<li class="staff-item" data-name="${s.name}" data-furi="${s.furigana}">
+                 <a class="dropdown-item py-1" href="javascript:void(0)" onclick="selectStaff('${id}', '${s.id}', '${s.name}')">
+                   <span class="d-block text-dark fw-bold">${s.name}</span>
+                   <small class="text-secondary" style="font-size:0.75rem;">${s.furigana}</small>
+                 </a>
+               </li>`;
+    });
+    listEl.innerHTML = html;
+
+    // 初期値の選択状態をセット
+    if (selectedValue) {
+      const staff = masterData.staffs.find(s => s.id === selectedValue);
+      if (staff) {
+        btnEl.innerText = staff.name;
+        hiddenEl.value = staff.id;
+      } else {
+        btnEl.innerText = selectedValue;
+        hiddenEl.value = selectedValue;
+      }
+    } else {
+      btnEl.innerText = '未設定';
+      hiddenEl.value = '';
+    }
+  }
+
+  // ★ ドロップダウンの項目をクリックした時の処理
+  function selectStaff(id, val, name) {
+    document.getElementById(id).value = val;
+    document.getElementById(`btn-${id}`).innerText = name || '未設定';
+    
+    // メイン担当を変更したらステータスを自動更新
+    if (id === 'mStaff') autoUpdateStatus(val, 'sStatus');
+  }
+
+  // ★ 検索ボックスで文字を打った時の絞り込み処理（ふりがな対応）
+  function filterDropdown(inputEl, listId) {
+    const keyword = inputEl.value.toLowerCase();
+    const items = document.getElementById(listId).querySelectorAll('.staff-item');
+    items.forEach(item => {
+      const name = item.getAttribute('data-name').toLowerCase();
+      const furi = item.getAttribute('data-furi').toLowerCase();
+      if (name.includes(keyword) || furi.includes(keyword)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+
+  // ★ 詳細画面用のドロップダウンHTMLパーツを生成する関数
+  function createStaffDropdownHtml(id, label, nameAttr) {
+    return `
+    <div class="col-md-3">
+      <label class="form-label small">${label}</label>
+      <div class="dropdown">
+        <button class="form-select text-start" type="button" data-bs-toggle="dropdown" id="btn-${id}">未設定</button>
+        <div class="dropdown-menu p-2 shadow-sm" style="min-width: 200px;">
+          <input type="text" class="form-control form-control-sm mb-2" placeholder="🔍 名前・ふりがな..." onkeyup="filterDropdown(this, 'list-${id}')" onclick="event.stopPropagation();">
+          <ul class="list-unstyled mb-0" id="list-${id}" style="max-height: 200px; overflow-y: auto;"></ul>
+        </div>
+        <input type="hidden" ${nameAttr ? `name="${nameAttr}"` : ''} id="${id}">
+      </div>
+    </div>`;
+  }
+
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+
+  function triggerAllResizes() {
+    document.querySelectorAll('.auto-expand').forEach(ta => autoResize(ta));
+  }
+
+  function showSection(id) {
+    document.querySelectorAll('#appTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(id + '-tab').classList.add('active');
+    if(id === 'regist') {
+      document.getElementById('section-list').classList.remove('section-active');
+      document.getElementById('section-regist').classList.add('section-active');
+    } else {
+      document.getElementById('section-regist').classList.remove('section-active');
+      document.getElementById('section-list').classList.add('section-active');
+    }
+  }
+
+  function autoUpdateStatus(mainStaffValue, targetStatusId) {
+    const statusSelect = document.getElementById(targetStatusId);
+    if (statusSelect) {
+      statusSelect.value = (mainStaffValue && mainStaffValue.trim() !== "") ? "差配済" : "未差配";
+    }
+  }
+
+  function handlePriceChange(selectObj) {
+    if (selectObj.value === 'custom') {
+      const customVal = prompt("単価を入力してください（例: 880000）");
+      if (customVal && customVal.trim() !== "") {
+        const opt = document.createElement('option');
+        opt.value = customVal;
+        opt.text = customVal;
+        selectObj.add(opt, selectObj.options.length - 1);
+        selectObj.value = customVal;
+      } else {
+        selectObj.selectedIndex = 0;
+      }
+    }
+  }
+
+  function toggleLoader(show, text = "") {
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = show ? 'flex' : 'none';
+    if (text) document.getElementById('loadingText').innerText = text;
+  }
+
+  const getBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(','));
+    reader.onerror = error => reject(error);
+  });
+
+  async function runAiAnalysis() {
+    const vttFile = document.getElementById('vttFile').files;
+    const pdfFile = document.getElementById('pdfFile').files;
+    const slideUrl = document.getElementById('slideUrl').value;
+    if (!vttFile && !pdfFile && !slideUrl) return alert("ファイルを選択するか、URLを入力してください。");
+
+    toggleLoader(true, "引継太郎が解析中です... ✨");
+    try {
+      const fileDataArray = [];
+      if (vttFile) fileDataArray.push({ mimeType: (vttFile.name.endsWith('.vtt')||vttFile.name.endsWith('.txt')) ? 'text/plain' : 'application/octet-stream', data: await getBase64(vttFile), name: vttFile.name });
+      if (pdfFile) fileDataArray.push({ mimeType: 'application/pdf', data: await getBase64(pdfFile), name: pdfFile.name });
+      google.script.run.withSuccessHandler(res => {
+        toggleLoader(false);
+        const form = document.getElementById('caseForm');
+        Object.keys(res).forEach(key => { if(form[key] && res[key] !== "") form[key].value = res[key]; });
+        triggerAllResizes();
+        if(res.進めるうえでの留意点) {
+          res.進めるうえでの留意点.forEach(val => {
+            const matchedCaution = masterData.cautions.find(c => c.name === val);
+            if (matchedCaution) {
+              const cb = document.getElementById('c-' + matchedCaution.id);
+              if(cb) cb.checked = true;
+            }
+          });
+        }
+      }).withFailureHandler(err => { toggleLoader(false); alert("解析エラー: " + err.message); }).analyzeFilesWithGemini(fileDataArray, slideUrl);
+    } catch (e) { toggleLoader(false); alert("ファイル読込失敗。"); }
+  }
+
+  function summarizeText(text) {
+    if (!text) return "特になし";
+    return text.replace(/\r?\n/g, ' ').trim();
+  }
+
+  function saveData() {
+    const companyName = document.querySelector('#caseForm input[name="企業名"]').value;
+    if (!companyName || companyName.trim() === "") {
+      alert("「企業名」が入力されていません。"); return;
+    }
+
+    const fd = new FormData(document.getElementById('caseForm'));
+    const data = Object.fromEntries(fd.entries());
+    data['進めるうえでの留意点'] = fd.getAll('進めるうえでの留意点').join(', ');
+    data.報告資料URL = document.getElementById('slideUrl').value;
+
+    const priceName = masterData.prices.find(p => p.id === data['単価'])?.name || data['単価'] || '未設定';
+    const staffName = masterData.staffs.find(s => s.id === data['初月担当'])?.name || data['初月担当'] || '未設定';
+    const cautionNames = fd.getAll('進めるうえでの留意点').map(id => masterData.cautions.find(c => c.id === id)?.name || id).join(', ') || '特になし';
+
+    const lineText = `【新規案件引継ぎ】\n■企業情報\n企業名: ${data['企業名']} (${data['本社都道府県'] || '県不明'})\n住所: ${data['本社住所'] || '未設定'}\n設立: ${data['設立'] || '-'} / 従業員数: ${data['従業員数'] || '-'}\n売上: ${data['売上'] || '-'} / 利益: ${data['利益'] || '-'}\n事業内容: ${summarizeText(data['事業内容'])}\n\n■案件情報\n実施月: ${data['実施月']}\n単価: ${priceName}\n訪問/ZOOM: ${data['訪問 or ZOOM'] || '未設定'}\n初月担当: ${staffName}\n\n■テーマ・課題\n目的: ${summarizeText(data['プロジェクトの目的'])}\n主な課題: ${summarizeText(data['主な課題・解決すべきテーマ'])}\n初動テーマ: ${summarizeText(data['初動で着手するテーマ'])}\nツール指定: ${data['ツール指定'] || '特になし'}\n内製化温度感: ${data['内製化の温度感'] || '未設定'}\n\n■留意点・その他\n留意点: ${cautionNames}\nその他: ${summarizeText(data['その他引継ぎ事項'])}\n備考: ${summarizeText(data['備考'])}\n資料: ${data['報告資料URL'] || 'なし'}`;
+
+    document.getElementById('lineTextOutput').value = lineText;
+    document.getElementById('saveStatusText').innerHTML = '⏳ 裏側でスプレッドシートに保存中...';
+    new bootstrap.Modal(document.getElementById('lineModal')).show();
+
+    google.script.run.withSuccessHandler(id => {
+      document.getElementById('saveStatusText').innerHTML = '✅ 保存完了！';
+      document.getElementById('caseForm').reset();
+      buildDropdownList('registFirstStaff', ''); // 初月担当の表示をリセット
+      loadCases(true); 
+    }).withFailureHandler(err => { document.getElementById('saveStatusText').innerHTML = '❌ 保存エラー: ' + err.message; }).saveCase(data);
+  }
+
+  function showLineModalFromDetail() {
+    const fd = new FormData(document.getElementById('editDetailForm'));
+    const data = Object.fromEntries(fd.entries());
+    data['進めるうえでの留意点'] = fd.getAll('進めるうえでの留意点').join(', ');
+    
+    const priceName = masterData.prices.find(p => p.id === data['単価'])?.name || data['単価'] || '未設定';
+    const staffName = masterData.staffs.find(s => s.id === data['初月担当'])?.name || data['初月担当'] || '未設定';
+    const cautionNames = fd.getAll('進めるうえでの留意点').map(id => masterData.cautions.find(c => c.id === id)?.name || id).join(', ') || '特になし';
+
+    const lineText = `【新規案件引継ぎ】\n■企業情報\n企業名: ${data['企業名']} (${data['本社都道府県'] || '県不明'})\n住所: ${data['本社住所'] || '未設定'}\n設立: ${data['設立'] || '-'} / 従業員数: ${data['従業員数'] || '-'}\n売上: ${data['売上'] || '-'} / 利益: ${data['利益'] || '-'}\n事業内容: ${summarizeText(data['事業内容'])}\n\n■案件情報\n実施月: ${data['実施月']}\n単価: ${priceName}\n訪問/ZOOM: ${data['訪問 or ZOOM'] || '未設定'}\n初月担当: ${staffName}\n\n■テーマ・課題\n目的: ${summarizeText(data['プロジェクトの目的'])}\n主な課題: ${summarizeText(data['主な課題・解決すべきテーマ'])}\n初動テーマ: ${summarizeText(data['初動で着手するテーマ'])}\nツール指定: ${data['ツール指定'] || '特になし'}\n内製化温度感: ${data['内製化の温度感'] || '未設定'}\n\n■留意点・その他\n留意点: ${cautionNames}\nその他: ${summarizeText(data['その他引継ぎ事項'])}\n備考: ${summarizeText(data['備考'])}\n資料: ${data['報告資料URL'] || 'なし'}`;
+
+    document.getElementById('lineTextOutput').value = lineText;
+    document.getElementById('saveStatusText').innerHTML = '✅ 転送文を作成しました！';
+    new bootstrap.Modal(document.getElementById('lineModal')).show();
+  }
+
+  function copyLineText() {
+    document.getElementById('lineTextOutput').select();
+    document.execCommand('copy');
+    alert('クリップボードにコピーしました！');
+  }
+
+  function loadCases(silent = false) {
+    if (!silent) toggleLoader(true, "引継ぎ情報を読み込んでいます...");
+    google.script.run.withSuccessHandler(data => {
+      if (!silent) toggleLoader(false);
+      allCases = data;
+      updateAreaDatalist(); renderList(data);
+    }).getCases();
+  }
+
+  function updateAreaDatalist() {
+    const areas = new Set(allCases.map(c => c['本社都道府県']).filter(v => v && v.trim() !== ''));
+    document.getElementById('areaList').innerHTML = Array.from(areas).map(a => `<option value="${a}">`).join('');
+  }
+
+  function renderList(data) {
+    const list = document.getElementById('caseList');
+    if (!data || data.length === 0) return list.innerHTML = '<div class="p-3 text-muted">該当する案件がありません。</div>';
+    list.innerHTML = [...data].reverse().map((c, idx) => {
+      const originalIndex = allCases.indexOf(c);
+      return `<a href="javascript:void(0)" class="list-group-item list-group-item-action border-0 border-bottom" onclick="showDetail(${originalIndex})"><div class="d-flex justify-content-between align-items-center"><strong class="text-primary">${c['企業名'] || '(未入力)'}</strong><span class="badge ${c['ステータス'] === '差配済' ? 'bg-success' : 'bg-warning text-dark'}">${c['ステータス'] || '未差配'}</span></div><small class="text-muted">${c['本社都道府県']||'エリア未設定'} / ${c['実施月']||'月未定'}</small></a>`;
+    }).join('');
+  }
+
+  function filterList() {
+    const keyword = document.getElementById('searchBox').value.toLowerCase();
+    const area = document.getElementById('searchArea').value.toLowerCase();
+    const visitZoom = document.getElementById('searchVisitZoom').value;
+    const price = document.getElementById('searchPrice').value;
+    const filtered = allCases.filter(c => {
+      const matchKeyword = (c['企業名'] || '').toLowerCase().includes(keyword);
+      const matchArea = (c['本社都道府県'] || '').toLowerCase().includes(area);
+      const matchVisitZoom = visitZoom === "" || c['訪問 or ZOOM'] === visitZoom;
+      const matchPrice = price === "" || c['単価'] === price;
+      return matchKeyword && matchArea && matchVisitZoom && matchPrice;
+    });
+    renderList(filtered);
+  }
+
+  function showDetail(index) {
+    const c = allCases[index];
+    
+    let customPriceOption = '';
+    if (c['単価'] && !masterData.prices.find(p => p.id === c['単価'])) {
+      customPriceOption = `<option value="${c['単価']}" selected>${c['単価']}</option>`;
+    }
+    const priceOptions = '<option value="">未選択</option>' + customPriceOption + masterData.prices.map(p => `<option value="${p.id}" ${c['単価']==p.id ? 'selected' : ''}>${p.name}</option>`).join('') + '<option value="custom">✍️ 自分で入力する...</option>';
+
+    const currentCautions = c['進めるうえでの留意点'] ? c['進めるうえでの留意点'].split(',').map(v => v.trim()) : [];
+    const cautionChecks = masterData.cautions.map(mC => `<div class="form-check"><input class="form-check-input" type="checkbox" name="進めるうえでの留意点" value="${mC.id}" id="detail-c-${mC.id}" ${currentCautions.includes(mC.id) ? 'checked' : ''}><label class="form-check-label" for="detail-c-${mC.id}">${mC.name}</label></div>`).join('');
+
+    document.getElementById('detailView').innerHTML = `
+      <h4 class="text-primary mb-4 fw-bold">引継ぎ情報詳細 (編集可能)</h4>
+      <form id="editDetailForm" class="row g-3">
+        <div class="col-12"><div class="card bg-white p-3"><h6 class="text-muted mb-3">企業情報</h6><div class="row g-2">
+          <div class="col-md-6"><label class="form-label small">企業名</label><input type="text" name="企業名" class="form-control" value="${c['企業名']||''}"></div>
+          <div class="col-md-6"><label class="form-label small">本社住所</label><input type="text" name="本社住所" class="form-control" value="${c['本社住所']||''}"></div>
+          <div class="col-md-3"><label class="form-label small">都道府県</label><input type="text" name="本社都道府県" class="form-control" value="${c['本社都道府県']||''}"></div>
+          <div class="col-md-3"><label class="form-label small">設立</label><input type="text" name="設立" class="form-control" value="${c['設立']||''}"></div>
+          <div class="col-md-6"><label class="form-label small">従業員数</label><input type="text" name="従業員数" class="form-control" value="${c['従業員数']||''}"></div>
+          <div class="col-md-6"><label class="form-label small">売上</label><input type="text" name="売上" class="form-control" value="${c['売上']||''}"></div>
+          <div class="col-md-6"><label class="form-label small">利益</label><input type="text" name="利益" class="form-control" value="${c['利益']||''}"></div>
+          <div class="col-12"><label class="form-label small">事業内容</label><textarea name="事業内容" class="form-control auto-expand" rows="1">${c['事業内容']||''}</textarea></div>
+        </div></div></div>
+        <div class="col-12"><div class="card bg-white p-3 mt-3"><h6 class="text-muted mb-3">案件情報</h6><div class="row g-2">
+          <div class="col-md-4"><label class="form-label small text-warning">✍️ 実施月</label><input type="month" name="実施月" class="form-control manual-input" value="${c['実施月']||''}"></div>
+          <div class="col-md-4"><label class="form-label small text-warning">✍️ 単価 (マスタ連動)</label><select name="単価" class="form-select manual-input" onchange="handlePriceChange(this)">${priceOptions}</select></div>
+          <div class="col-md-4"><label class="form-label small text-warning">✍️ 訪問 or ZOOM</label>
+            <select name="訪問 or ZOOM" class="form-select manual-input" id="detailVisitOrZoom">
+              <option value="">未選択</option><option value="全て訪問">全て訪問</option><option value="全てZoom">全てZoom</option><option value="訪問メイン,Zoom可">訪問メイン,Zoom可</option><option value="Zoomメイン,訪問可">Zoomメイン,訪問可</option>
+            </select>
+          </div>
+          <div class="col-12"><label class="form-label small">目的</label><textarea name="プロジェクトの目的" class="form-control auto-expand">${c['プロジェクトの目的']||''}</textarea></div>
+          <div class="col-12"><label class="form-label small">主な課題</label><textarea name="主な課題・解決すべきテーマ" class="form-control auto-expand">${c['主な課題・解決すべきテーマ']||''}</textarea></div>
+          <div class="col-12"><label class="form-label small">初動テーマ</label><textarea name="初動で着手するテーマ" class="form-control auto-expand">${c['初動で着手するテーマ']||''}</textarea></div>
+          <div class="col-md-6"><label class="form-label small">ツール指定</label><input type="text" name="ツール指定" class="form-control" value="${c['ツール指定']||''}"></div>
+          <div class="col-md-6"><label class="form-label small text-warning">✍️ 内製化温度感</label>
+            <select name="内製化の温度感" class="form-select manual-input" id="detailTemperature">
+              <option value="">未選択</option><option value="内製化前提">内製化前提</option><option value="内製化前提(懸念あり)">内製化前提(懸念あり)</option><option value="目指さない">目指さない</option>
+            </select>
+          </div>
+          <div class="col-12"><label class="form-label small">資料URL</label><input type="text" name="報告資料URL" class="form-control" value="${c['報告資料URL']||''}"></div>
+        </div></div></div>
+        <div class="col-12"><div class="card bg-white p-3 mt-3"><h6 class="text-muted mb-3">留意点、その他</h6><div class="row g-2">
+          <div class="col-12"><label class="form-label small">進めるうえでの留意点</label><div class="d-flex flex-wrap gap-3 p-3 bg-light rounded border">${cautionChecks}</div></div>
+          <div class="col-12"><label class="form-label small">その他引継ぎ</label><textarea name="その他引継ぎ事項" class="form-control auto-expand">${c['その他引継ぎ事項']||''}</textarea></div>
+          <div class="col-12"><label class="form-label small">備考</label><textarea name="備考" class="form-control auto-expand">${c['備考']||''}</textarea></div>
+        </div></div></div>
+        <div class="col-12 mt-4"><div class="card bg-light border-0"><div class="card-body"><h6 class="mb-3 text-primary fw-bold">差配・担当設定</h6><div class="row g-2">
+          ${createStaffDropdownHtml('detailFirstStaff', '初月担当', '初月担当')}
+          ${createStaffDropdownHtml('mStaff', 'メイン担当', '')}
+          ${createStaffDropdownHtml('sStaff', 'サブ担当', '')}
+          <div class="col-md-3"><label class="form-label small">ステータス</label><select id="sStatus" class="form-select"><option value="未差配">未差配</option><option value="差配済">差配済</option></select></div>
+          <div class="col-12 mt-3 text-end d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-success px-4 fw-bold" onclick="showLineModalFromDetail()">LINE転送文を作成</button>
+            <button type="button" class="btn btn-primary px-5 fw-bold" onclick="updateCaseAllDetail('${c.ID}')">情報を更新</button>
+          </div>
+        </div></div></div>
+      </form>
+    `;
+
+    document.getElementById('sStatus').value = c['ステータス'] || "未差配";
+    document.getElementById('detailVisitOrZoom').value = c['訪問 or ZOOM'] || "";
+    document.getElementById('detailTemperature').value = c['内製化の温度感'] || "";
+
+    // オリジナルのドロップダウンにデータを流し込む
+    buildDropdownList('detailFirstStaff', c['初月担当']);
+    buildDropdownList('mStaff', c['メイン担当']);
+    buildDropdownList('sStaff', c['サブ担当']);
+    
+    triggerAllResizes();
+  }
+
+  function updateCaseAllDetail(id) {
+    const fd = new FormData(document.getElementById('editDetailForm'));
+    const data = Object.fromEntries(fd.entries());
+    data['進めるうえでの留意点'] = fd.getAll('進めるうえでの留意点').join(', ');
+    
+    const mStaff = document.getElementById('mStaff').value;
+    const sStaff = document.getElementById('sStaff').value;
+    const sStatus = document.getElementById('sStatus').value;
+
+    toggleLoader(true, "太郎が全情報を更新しています...");
+    google.script.run.withSuccessHandler(() => {
+      google.script.run.withSuccessHandler(() => {
+        toggleLoader(false); alert('情報を更新しました！✨'); loadCases(true); 
+      }).updateAssignment(id, mStaff, sStaff, sStatus);
+    }).updateCaseDetail(id, data);
+  }
+</script>
+</body>
+</html>
